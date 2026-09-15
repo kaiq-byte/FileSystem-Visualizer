@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>O disco não sabe o que é um arquivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+  :root{
+    --bg:#EDEEE9;
+    --bg-panel:#E3E5DE;
+    --ink:#14181A;
+    --ink-soft:#4B524E;
+    --line:#C7CBC2;
+    --line-strong:#A8ADA2;
+    --blue:#2947C7;
+    --amber:#C97A1F;
+    --teal:#177A69;
+    --dark:#14181A;
+    --dark-panel:#1F2422;
+    --dark-line:#3A413C;
+    --paper-card:#F7F7F3;
+    --radius:2px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Space Grotesk', sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  ::selection{background:var(--blue); color:#fff;}
+
+  /* progress bar */
+  #progress{
+    position:fixed; top:0; left:0; height:3px; width:0%;
+    background:var(--blue); z-index:200; transition:width .05s linear;
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    min-height:100vh;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:8vh 7vw 10vh;
+    position:relative;
+    border-bottom:1px solid var(--line);
+  }
+  .hero .kicker{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.8rem; color:var(--ink-soft);
+    letter-spacing:.02em;
+    margin-bottom:1.6rem;
+  }
+  .hero h1{
+    font-size:clamp(2.4rem, 6vw, 5.2rem);
+    font-weight:600;
+    line-height:1.02;
+    max-width:16ch;
+    letter-spacing:-0.01em;
+  }
+  .hero p{
+    margin-top:2rem;
+    max-width:46ch;
+    font-size:clamp(1rem, 1.3vw, 1.2rem);
+    color:var(--ink-soft);
+  }
+  .hero .scroll-hint{
+    position:absolute; bottom:6vh; left:7vw;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.75rem; color:var(--ink-soft);
+    display:flex; align-items:center; gap:.6rem;
+  }
+  .scroll-hint .bar{
+    width:1px; height:34px; background:var(--line-strong);
+    position:relative; overflow:hidden;
+  }
+  .scroll-hint .bar::after{
+    content:''; position:absolute; top:-40%; left:0; width:100%; height:40%;
+    background:var(--ink); animation:hintmove 1.6s ease-in-out infinite;
+  }
+  @keyframes hintmove{ 0%{top:-40%} 100%{top:100%} }
+
+  /* ---------- STORY LAYOUT ---------- */
+  .story{
+    display:grid;
+    grid-template-columns: 1.05fr 0.95fr;
+  }
+  .story-visual{
+    position:sticky; top:0; height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:var(--bg-panel);
+    border-right:1px solid var(--line);
+    overflow:hidden;
+    padding:4vh 3vw;
+  }
+  .story-text{
+    padding:0 6vw;
+  }
+  .step{
+    min-height:92vh;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:8vh 0;
+    max-width:44ch;
+  }
+  .step .tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.72rem; color:var(--blue);
+    margin-bottom:1rem;
+  }
+  .step h2{
+    font-size:clamp(1.5rem, 2.4vw, 2.1rem);
+    font-weight:600; line-height:1.15;
+    margin-bottom:1.1rem;
+    letter-spacing:-0.01em;
+  }
+  .step p{ color:var(--ink-soft); font-size:1.02rem; }
+  .step p + p{ margin-top:.85rem; }
+  .step .callout{
+    margin-top:1.2rem;
+    padding:.9rem 1rem;
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-left:3px solid var(--blue);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.85rem;
+    color:var(--ink);
+  }
+
+  /* ---------- GRID VISUAL ---------- */
+  .grid-caption{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.72rem; color:var(--ink-soft);
+    margin-bottom:1.1rem;
+    text-align:center;
+  }
+  .visual-stage{
+    position:relative;
+    width:100%;
+  }
+  .block-grid{
+    display:grid;
+    grid-template-columns: repeat(14, 1fr);
+    gap:4px;
+    width:min(88%, 480px);
+    margin:0 auto;
+  }
+  .cell{
+    aspect-ratio:1;
+    background:#fff;
+    border:1px solid var(--line-strong);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.5rem;
+    color:#B9BEB4;
+    position:relative;
+    transition:background .35s ease, border-color .35s ease, color .35s ease, transform .35s ease;
+  }
+  .cell.lit{ color:var(--ink); }
+  .cell.reserved{ background:repeating-linear-gradient(135deg, var(--dark) 0 2px, #2b312e 2px 6px); border-color:var(--dark); color:#cfd3ce; }
+  .cell.extA{ background:var(--amber); border-color:var(--amber); color:#fff; transform:scale(1.05); }
+  .cell.extB{ background:var(--blue); border-color:var(--blue); color:#fff; transform:scale(1.05); }
+  .cell.extC{ background:var(--teal); border-color:var(--teal); color:#fff; transform:scale(1.05); }
+  .cell.dirblock{ background:#7A4EBF; border-color:#7A4EBF; color:#fff; transform:scale(1.05); }
+  .cell.homedir{ background:#C94F7A; border-color:#C94F7A; color:#fff; transform:scale(1.05); }
+  .cell.pulse{ outline:2px solid var(--blue); outline-offset:2px; }
+  .cell.scattered{ background:var(--amber); border-color:var(--amber); color:#fff; }
+
+  #linesSvg{
+    position:absolute; inset:0; width:100%; height:100%;
+    pointer-events:none;
+  }
+  #linesSvg path{
+    fill:none; stroke:var(--ink); stroke-width:1.4;
+    stroke-dasharray:4 4;
+    opacity:0;
+  }
+  #linesSvg path.solid{ stroke-dasharray:none; }
+
+  .overlay-text{
+    position:absolute; top:6%; left:50%; transform:translateX(-50%);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.82rem; color:var(--ink);
+    background:var(--paper-card);
+    border:1px solid var(--line-strong);
+    padding:.5rem .8rem;
+    opacity:0; transition:opacity .3s ease;
+    white-space:pre; text-align:left;
+  }
+  .overlay-text.show{ opacity:1; }
+
+  /* ---- struct-style cards (inode + dir entries) ---- */
+  .inode-card{
+    position:absolute; right:2%; bottom:5%;
+    width:252px;
+    background:var(--paper-card);
+    border:1px solid var(--ink);
+    padding:.85rem .95rem;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.66rem;
+    line-height:1.5;
+    opacity:0; transform:translateY(14px);
+    transition:opacity .4s ease, transform .4s ease;
+  }
+  .inode-card.show{ opacity:1; transform:translateY(0); }
+  .struct-title{ font-weight:600; margin-bottom:.55rem; color:var(--blue); white-space:pre; }
+  .struct-title .struct-tag{ font-weight:400; color:var(--ink-soft); }
+  .struct-close{ margin-top:.45rem; color:var(--ink-soft); }
+  .field-row{ display:flex; align-items:baseline; gap:.4rem; padding:.08rem 0; }
+  .field-row .f-off{ color:var(--line-strong); min-width:2.4em; }
+  .field-row .f-decl{ color:var(--ink-soft); flex:1; }
+  .field-row .f-val{ color:var(--ink); font-weight:600; text-align:right; }
+  .field-note{ padding-left:2.8em; color:var(--line-strong); font-size:.62rem; margin-bottom:.2rem; }
+  .inode-card .ext-line{ display:flex; align-items:center; gap:.4rem; margin-top:.25rem; padding-left:2.8em; color:var(--ink); }
+  .inode-card .swatch{ width:8px; height:8px; display:inline-block; flex:none; }
+
+  .dir-table{
+    position:absolute; left:2%; bottom:5%;
+    width:250px;
+    background:var(--paper-card);
+    border:1px solid #7A4EBF;
+    padding:.85rem .95rem;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.68rem;
+    line-height:1.55;
+    opacity:0; transform:translateY(14px);
+    transition:opacity .4s ease, transform .4s ease;
+  }
+  .dir-table.show{ opacity:1; transform:translateY(0); }
+  .dirent{ display:flex; align-items:baseline; gap:.4rem; padding:.12rem 0; }
+  .dirent .de-idx{ color:var(--line-strong); min-width:1.6em; }
+  .dirent .de-name{ color:var(--ink); }
+  .dirent .de-arrow{ color:#7A4EBF; }
+  .dirent .de-inode{ color:var(--ink-soft); margin-left:auto; }
+
+  /* ---- cd routine log panel ---- */
+  .cd-log{
+    position:absolute; left:50%; bottom:4%; transform:translateX(-50%);
+    width:min(94%, 440px);
+    background:var(--dark); color:#EFEFEA;
+    border:1px solid var(--dark-line);
+    padding:.9rem 1.05rem;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.68rem;
+    line-height:1.75;
+    opacity:0; transition:opacity .3s ease;
+  }
+  .cd-log.show{ opacity:1; }
+  .cd-log .line{ opacity:0; transform:translateY(4px); }
+  .cd-log .prompt{ color:#8CA0FF; }
+  .cd-log .step-n{ color:#8CA0FF; }
+  .cd-log .comment{ color:#9BA39C; }
+  .cd-log .arrow{ color:#E3A25C; }
+  .cd-log .ok{ color:#5FBF8F; }
+
+  @media (max-width: 900px){
+    .story{ grid-template-columns:1fr; }
+    .story-visual{ position:relative; height:70vh; border-right:none; border-bottom:1px solid var(--line); }
+    .story-text{ padding:0 6vw; }
+  }
+
+  /* ---------- STACK SECTION ---------- */
+  .stack-section{
+    background:var(--dark);
+    color:#EFEFEA;
+    padding:14vh 7vw;
+  }
+  .stack-section .head{ max-width:56ch; margin-bottom:8vh; }
+  .stack-section .kicker{ font-family:'IBM Plex Mono', monospace; font-size:.8rem; color:#8CA0FF; margin-bottom:1.2rem; }
+  .stack-section h2{ font-size:clamp(1.8rem,3.4vw,2.8rem); font-weight:600; line-height:1.15; margin-bottom:1.2rem; }
+  .stack-section .head p{ color:#B7BBB4; max-width:52ch; font-size:1.02rem; }
+
+  .stack{
+    max-width:640px; margin:0 auto;
+    display:flex; flex-direction:column; gap:0;
+  }
+  .stack-layer{
+    border:1px solid var(--dark-line);
+    background:var(--dark-panel);
+    padding:1.1rem 1.4rem;
+    opacity:0; transform:translateY(18px);
+  }
+  .stack-layer + .stack-layer{ border-top:none; }
+  .stack-layer .name{ font-weight:600; font-size:1.02rem; }
+  .stack-layer .detail{ font-family:'IBM Plex Mono', monospace; font-size:.78rem; color:#9BA39C; margin-top:.35rem; }
+  .stack-arrow{
+    text-align:center; font-family:'IBM Plex Mono', monospace; color:#5C645E; font-size:.85rem;
+    padding:.3rem 0; opacity:0;
+  }
+  .stack-note{
+    margin-top:4vh; max-width:52ch; margin-left:auto; margin-right:auto;
+    font-family:'IBM Plex Mono', monospace; font-size:.82rem; color:#8CA0FF;
+    border-left:2px solid #8CA0FF; padding-left:1rem;
+    opacity:0; transform:translateY(10px);
+  }
+
+  /* ---------- CLOSING ---------- */
+  .closing{
+    min-height:80vh;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:10vh 7vw;
+    max-width:60ch;
+  }
+  .closing .kicker{ font-family:'IBM Plex Mono', monospace; font-size:.8rem; color:var(--ink-soft); margin-bottom:1.4rem; }
+  .closing h2{ font-size:clamp(1.7rem,3vw,2.4rem); font-weight:600; line-height:1.18; margin-bottom:1.3rem; }
+  .closing p{ color:var(--ink-soft); font-size:1.05rem; max-width:52ch; }
+  .closing p + p{ margin-top:1rem; }
+  .closing .sig{ margin-top:3rem; font-family:'IBM Plex Mono', monospace; font-size:.78rem; color:var(--line-strong); }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="kicker">sistemas de arquivos — do bloco cru ao ext4</div>
+  <h1>O disco não sabe<br>o que é um arquivo.</h1>
+  <p>Para o hardware, um HD ou SSD é um array gigante de blocos numerados, todos do mesmo tamanho. "Pasta" e "arquivo" não existem aí — são uma construção de software. Role para ver como o ext4 constrói essa ilusão em cima de dois comandos.</p>
+  <div class="scroll-hint"><div class="bar"></div>role para baixo</div>
+</section>
+
+<!-- STORY -->
+<section class="story" id="story">
+  <div class="story-visual">
+    <div class="visual-stage">
+      <div class="grid-caption" id="gridCaption">98 blocos mostrados — um disco real tem bilhões</div>
+      <div class="block-grid" id="blockGrid"></div>
+      <svg id="linesSvg"></svg>
+      <div class="overlay-text" id="overlayText"></div>
+      <div class="inode-card" id="inodeCard">
+        <div class="struct-title">struct ext4_inode { <span class="struct-tag">// inode 88</span></div>
+        <div class="field-row"><span class="f-off">0x00</span><span class="f-decl">u16 i_mode</span><span class="f-val">0100644</span></div>
+        <div class="field-note">arquivo regular · rw-r--r--</div>
+        <div class="field-row"><span class="f-off">0x04</span><span class="f-decl">u16 i_uid</span><span class="f-val">1000</span></div>
+        <div class="field-note">joao</div>
+        <div class="field-row"><span class="f-off">0x08</span><span class="f-decl">u64 i_size</span><span class="f-val">36864</span></div>
+        <div class="field-note">36.4 KB</div>
+        <div class="field-row"><span class="f-off">0x1A</span><span class="f-decl">u16 i_links_count</span><span class="f-val">1</span></div>
+        <div class="field-row"><span class="f-off">0x28</span><span class="f-decl">extent i_block[]</span><span class="f-val"></span></div>
+        <div class="ext-line"><span class="swatch" style="background:var(--amber)"></span>{ start: 5312, len: 5 }</div>
+        <div class="ext-line"><span class="swatch" style="background:var(--blue)"></span>{ start: 8810, len: 3 }</div>
+        <div class="ext-line"><span class="swatch" style="background:var(--teal)"></span>{ start: 20447, len: 1 }</div>
+        <div class="struct-close">};</div>
+      </div>
+      <div class="dir-table" id="dirTable">
+        <div class="struct-title" style="color:#7A4EBF;">struct ext4_dir_entry[] { <span class="struct-tag">// bloco 6603</span></div>
+        <div class="dirent"><span class="de-idx">[0]</span><span class="de-name">"documento.txt"</span><span class="de-arrow">→</span><span class="de-inode">inode 88</span></div>
+        <div class="dirent"><span class="de-idx">[1]</span><span class="de-name">"foto.jpg"</span><span class="de-arrow">→</span><span class="de-inode">inode 245</span></div>
+        <div class="dirent"><span class="de-idx">[2]</span><span class="de-name">"projetos/"</span><span class="de-arrow">→</span><span class="de-inode">inode 12</span></div>
+        <div class="struct-close" style="color:#7A4EBF;">};</div>
+      </div>
+      <div class="cd-log" id="cdLog"></div>
+    </div>
+  </div>
+
+  <div class="story-text">
+
+    <div class="step" data-step="0">
+      <div class="tag">01 — o hardware</div>
+      <h2>Só existem dois comandos.</h2>
+      <p>Nem o controlador do disco, nem o sistema operacional antes de montar um filesystem, conhecem "arquivo". Existe um array numerado de blocos — geralmente 512 bytes ou 4096 bytes cada — e nada mais.</p>
+      <p>Todo bloco pode ser lido ou escrito, individualmente, por número.</p>
+    </div>
+
+    <div class="step" data-step="1">
+      <div class="tag">02 — a instrução nativa</div>
+      <h2>READ_BLOCK(N) e WRITE_BLOCK(N, dados).</h2>
+      <p>É o vocabulário inteiro do hardware. A mesma lógica de LOAD/STORE que a CPU usa para endereçar a RAM — só que aqui o endereço é um bloco do disco, não uma posição de memória.</p>
+      <div class="callout">READ_BLOCK(42)<br>WRITE_BLOCK(42, dados)</div>
+    </div>
+
+    <div class="step" data-step="2">
+      <div class="tag">03 — o problema real</div>
+      <h2>Um arquivo raramente cabe em um bloco.</h2>
+      <p>Um documento de 36 KB precisa de vários blocos — e o disco não tem obrigação nenhuma de colocá-los lado a lado. Eles podem cair em qualquer região livre, longe uns dos outros.</p>
+      <p>Sem um registro de quais blocos pertencem ao arquivo e em que ordem, os bytes recuperados viram ruído.</p>
+    </div>
+
+    <div class="step" data-step="3">
+      <div class="tag">04 — a solução do ext4</div>
+      <h2>Um registro fixo por arquivo: o inode.</h2>
+      <p>O ext4 reserva, de antemão, uma região do disco só para metadados. Cada arquivo ganha um inode — uma entrada de tamanho fixo (256 bytes, tipicamente) guardada nessa tabela.</p>
+      <p>Na prática esse bloco é só bytes crus, mas o kernel os lê como uma <span class="mono">struct ext4_inode</span>: campos fixos, em offsets fixos. O inode não guarda o nome do arquivo — guarda quem é o dono, permissões, timestamps, tamanho — e, principalmente, onde estão os blocos de dados.</p>
+    </div>
+
+    <div class="step" data-step="4">
+      <div class="tag">05 — extents, não ponteiros soltos</div>
+      <h2>Em vez de um ponteiro por bloco, intervalos.</h2>
+      <p>Ao invés de listar block 5312, depois 5313, depois 5314... o inode do ext4 guarda faixas contínuas: <span class="mono">início + tamanho</span>. Um arquivo espalhado em três regiões vira só três entradas — não centenas.</p>
+      <p>E como cada entrada é uma faixa matemática, calcular "onde está o byte 30000 deste arquivo" é aritmética direta — não uma travessia sequencial.</p>
+    </div>
+
+    <div class="step" data-step="5">
+      <div class="tag">06 — diretório é arquivo</div>
+      <h2>Uma pasta também tem um inode.</h2>
+      <p>Um diretório é só um arquivo especial: seu conteúdo, guardado nos próprios blocos de dados, é um vetor de registros — <span class="mono">struct ext4_dir_entry</span> — e cada um desses registros é exatamente a relação nome ↔ inode.</p>
+      <div class="callout">documento.txt → inode 88
+foto.jpg       → inode 245
+projetos/      → inode 12</div>
+    </div>
+
+    <div class="step" data-step="6">
+      <div class="tag">07 — a travessia completa</div>
+      <h2>Abrir "documento.txt" em quatro saltos.</h2>
+      <p>O caminho não tem atalho: ler o bloco do diretório → achar a linha com o nome → seguir para o inode 88 → ler os extents → ler os blocos de dados de fato.</p>
+      <p>Cada seta nesse caminho é, no fundo, uma chamada READ_BLOCK.</p>
+    </div>
+
+    <div class="step" data-step="7">
+      <div class="tag">08 — a rotina de um cd</div>
+      <h2>cd /home/folder1: a mesma travessia, encadeada duas vezes.</h2>
+      <p>O kernel resolve o caminho um componente por vez, e cada componente é a mesma dupla struct → struct que já vimos: primeiro acha o nome na tabela de diretório, depois lê o inode que ela aponta.</p>
+      <p>Para "/home/folder1" isso significa repetir o padrão duas vezes seguidas — uma para achar "home" dentro de "/", outra para achar "folder1" dentro de "home".</p>
+      <p>No fim, o processo não guarda um caminho de texto: guarda só o número do inode atual, o <span class="mono">cwd</span>.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- STACK SECTION -->
+<section class="stack-section">
+  <div class="head">
+    <div class="kicker">a pilha inteira, de cima a baixo</div>
+    <h2>ext4 é software. O hardware não sabe que ele existe.</h2>
+    <p>FAT, ext4 e NTFS não são hardwares diferentes — são três implementações de software que resolvem o mesmo problema com estruturas de dados internas diferentes. Por isso o mesmo pendrive físico aceita ser formatado como qualquer um dos três: o disco só recebe READ_BLOCK / WRITE_BLOCK, seja qual for o "dicionário" por cima.</p>
+  </div>
+  <div class="stack">
+    <div class="stack-layer" data-layer>
+      <div class="name">Aplicação</div>
+      <div class="detail">"quero ler documento.txt"</div>
+    </div>
+    <div class="stack-arrow">↓</div>
+    <div class="stack-layer" data-layer>
+      <div class="name">Camada de filesystem — ext4 (software)</div>
+      <div class="detail">traduz o nome em: inode 88 → extents → blocos 5312–5316, 8810–8812, 20447</div>
+    </div>
+    <div class="stack-arrow">↓</div>
+    <div class="stack-layer" data-layer>
+      <div class="name">Driver / controlador do disco</div>
+      <div class="detail">READ_BLOCK(5312), READ_BLOCK(5313)...</div>
+    </div>
+    <div class="stack-arrow">↓</div>
+    <div class="stack-layer" data-layer>
+      <div class="name">Hardware do disco</div>
+      <div class="detail">só entende ler / escrever um bloco por número</div>
+    </div>
+  </div>
+  <div class="stack-note">é o mesmo padrão da ISA de uma CPU: um vocabulário nativo fixo e pequeno, com tudo o que parece sofisticado construído em software por cima.</div>
+</section>
+
+<!-- CLOSING -->
+<section class="closing">
+  <div class="kicker">em resumo</div>
+  <h2>Arquivo é uma ideia. Bloco é o fato físico.</h2>
+  <p>O ext4 monta essa ideia com três peças: uma área reservada de inodes, um inode por arquivo guardando metadados e extents, e diretórios que são só arquivos cujo conteúdo mapeia nomes para números de inode.</p>
+  <p>Tudo isso roda como código comum — o file management system — dentro do sistema operacional. O disco, do começo ao fim, continua sem saber o que é um arquivo.</p>
+  <div class="sig">fim</div>
+</section>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+/* ---------- build the block grid ---------- */
+const N_COLS = 14, N_ROWS = 7;
+const TOTAL = N_COLS * N_ROWS;
+const gridEl = document.getElementById('blockGrid');
+
+// give cells plausible-looking "real disk" numbers, but keep two
+// small groups reserved for the reserved/dir/extent demo positions
+function fakeBlockNumber(i){ return (1000 + i * 733) % 99999; }
+
+const cells = [];
+for(let i=0;i<TOTAL;i++){
+  const c = document.createElement('div');
+  c.className = 'cell';
+  c.dataset.idx = i;
+  c.textContent = '';
+  gridEl.appendChild(c);
+  cells.push(c);
+}
+
+/* fixed layout positions used across steps (indices into the 14x7 grid) */
+const RESERVED = [0,1,2,3,4,5,6,7,8,9,10,11,12,13]; // top row = inode table area
+const SCATTERED = [16, 33, 47, 60, 74, 81, 90, 20, 55]; // step 2: unordered mess
+const EXT_A = [30,31,32,33,34];           // contiguous run, amber
+const EXT_B = [61,62,63];                 // contiguous run, blue
+const EXT_C = [88];                       // single block, teal
+const DIRBLOCK = [95];
+
+/* step 7 — cd /home/folder1 */
+const CD_ROOT_DIR = [96];                 // data block of "/"
+const CD_HOME_INODE_IDX = 5;              // "home" entry, inside the reserved inode table
+const CD_HOME_DIR = [50];                 // data block of "/home"
+const CD_FOLDER_INODE_IDX = 10;           // "folder1" entry, inside the reserved inode table
+
+function clearAll(){
+  cells.forEach(c=>{
+    c.className = 'cell';
+    c.textContent = '';
+  });
+  document.getElementById('overlayText').classList.remove('show');
+  document.getElementById('inodeCard').classList.remove('show');
+  document.getElementById('dirTable').classList.remove('show');
+  const cdLog = document.getElementById('cdLog');
+  cdLog.classList.remove('show');
+  cdLog.innerHTML = '';
+  gsap.killTweensOf('.cd-log .line');
+  document.querySelectorAll('#linesSvg path').forEach(p=>p.remove());
+}
+
+function labelCells(list){
+  list.forEach(i=>{
+    cells[i].classList.add('lit');
+    cells[i].textContent = fakeBlockNumber(i);
+  });
+}
+
+function drawLine(fromIdx, toIdx, solid){
+  const svg = document.getElementById('linesSvg');
+  const stage = document.querySelector('.visual-stage');
+  const a = cells[fromIdx].getBoundingClientRect();
+  const b = cells[toIdx].getBoundingClientRect();
+  const s = stage.getBoundingClientRect();
+  const x1 = a.left + a.width/2 - s.left, y1 = a.top + a.height/2 - s.top;
+  const x2 = b.left + b.width/2 - s.left, y2 = b.top + b.height/2 - s.top;
+  const midY = (y1+y2)/2 - 24;
+  const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('d', `M ${x1} ${y1} Q ${(x1+x2)/2} ${midY} ${x2} ${y2}`);
+  if(solid) path.classList.add('solid');
+  svg.appendChild(path);
+  gsap.to(path, {opacity:1, duration:.5});
+  return path;
+}
+
+const overlay = document.getElementById('overlayText');
+const inodeCard = document.getElementById('inodeCard');
+const dirTable = document.getElementById('dirTable');
+const caption = document.getElementById('gridCaption');
+
+const renderers = [
+  /* 0 — plain array reveal */
+  () => {
+    clearAll();
+    caption.textContent = '98 blocos mostrados — um disco real tem bilhões';
+    gsap.utils.toArray(cells).forEach((c,i)=>{
+      c.textContent = fakeBlockNumber(i);
+      gsap.fromTo(c, {opacity:0}, {opacity:1, delay:i*0.004, duration:.3, onStart:()=>c.style.opacity=1});
+    });
+  },
+  /* 1 — instructions, pulse block 42 */
+  () => {
+    clearAll();
+    caption.textContent = 'toda leitura ou escrita se resume a isto';
+    cells.forEach((c,i)=> c.textContent = fakeBlockNumber(i));
+    cells[42].classList.add('pulse','extB');
+    overlay.textContent = 'READ_BLOCK(42)\nWRITE_BLOCK(42, dados)';
+    overlay.classList.add('show');
+  },
+  /* 2 — scattered mess, no order info */
+  () => {
+    clearAll();
+    caption.textContent = 'os blocos de um único arquivo, espalhados';
+    cells.forEach((c,i)=> c.textContent = fakeBlockNumber(i));
+    SCATTERED.forEach(i=> cells[i].classList.add('scattered'));
+    overlay.textContent = 'quais blocos? em que ordem?';
+    overlay.classList.add('show');
+  },
+  /* 3 — reserved inode table + inode card intro */
+  () => {
+    clearAll();
+    caption.textContent = 'uma faixa do disco é reservada para metadados';
+    cells.forEach((c,i)=> c.textContent = fakeBlockNumber(i));
+    RESERVED.forEach(i=> cells[i].classList.add('reserved'));
+    inodeCard.classList.add('show');
+  },
+  /* 4 — extents drawn as contiguous colored runs + lines from inode */
+  () => {
+    clearAll();
+    caption.textContent = 'extents: intervalos contínuos, não um ponteiro por bloco';
+    cells.forEach((c,i)=> c.textContent = fakeBlockNumber(i));
+    RESERVED.forEach(i=> cells[i].classList.add('reserved'));
+    EXT_A.forEach(i=> cells[i].classList.add('extA'));
+    EXT_B.forEach(i=> cells[i].classList.add('extB'));
+    EXT_C.forEach(i=> cells[i].classList.add('extC'));
+    inodeCard.classList.add('show');
+    requestAnimationFrame(()=>{
+      drawLine(6, EXT_A[2], true);
+      drawLine(6, EXT_B[1], true);
+      drawLine(6, EXT_C[0], true);
+    });
+  },
+  /* 5 — directory block + table */
+  () => {
+    clearAll();
+    caption.textContent = 'um diretório é um arquivo cujo conteúdo é uma tabela';
+    cells.forEach((c,i)=> c.textContent = fakeBlockNumber(i));
+    DIRBLOCK.forEach(i=> cells[i].classList.add('dirblock'));
+    EXT_A.forEach(i=> cells[i].classList.add('extA'));
+    EXT_B.forEach(i=> cells[i].classList.add('extB'));
+    EXT_C.forEach(i=> cells[i].classList.add('extC'));
+    dirTable.classList.add('show');
+  },
+  /* 6 — full traversal, sequential highlight */
+  () => {
+    clearAll();
+    caption.textContent = 'nome → linha na tabela → inode → extents → blocos';
+    cells.forEach((c,i)=> c.textContent = fakeBlockNumber(i));
+    DIRBLOCK.forEach(i=> cells[i].classList.add('dirblock'));
+    dirTable.classList.add('show');
+    gsap.delayedCall(0.5, ()=> inodeCard.classList.add('show'));
+    gsap.delayedCall(1.0, ()=>{
+      EXT_A.forEach(i=> cells[i].classList.add('extA'));
+      EXT_B.forEach(i=> cells[i].classList.add('extB'));
+      EXT_C.forEach(i=> cells[i].classList.add('extC'));
+      requestAnimationFrame(()=>{
+        drawLine(DIRBLOCK[0], 6, true);
+        drawLine(6, EXT_A[2], true);
+        drawLine(6, EXT_B[1], true);
+        drawLine(6, EXT_C[0], true);
+      });
+    });
+  },
+  /* 7 — cd /home/folder1: two chained dirent → inode lookups */
+  () => {
+    clearAll();
+    caption.textContent = 'cd /home/folder1 — o mesmo padrão, duas vezes seguidas';
+    cells.forEach((c,i)=> c.textContent = fakeBlockNumber(i));
+    RESERVED.forEach(i=> cells[i].classList.add('reserved'));
+
+    const cdLog = document.getElementById('cdLog');
+    cdLog.classList.add('show');
+
+    function addLine(html, delay){
+      gsap.delayedCall(delay, ()=>{
+        const l = document.createElement('div');
+        l.className = 'line';
+        l.innerHTML = html;
+        cdLog.appendChild(l);
+        gsap.to(l, {opacity:1, y:0, duration:.35});
+      });
+    }
+
+    addLine('<span class="prompt">$</span> cd /home/folder1', 0);
+
+    addLine('<span class="step-n">1.</span> READ_BLOCK(2) <span class="comment">// dados de "/"</span>', .6);
+    gsap.delayedCall(.6, ()=>{ CD_ROOT_DIR.forEach(i=> cells[i].classList.add('dirblock')); });
+    addLine('&nbsp;&nbsp;"home" <span class="arrow">→</span> inode 50', 1.1);
+
+    addLine('<span class="step-n">2.</span> READ_BLOCK(inode 50) <span class="comment">// tabela de inodes</span>', 1.7);
+    gsap.delayedCall(1.7, ()=>{
+      cells[CD_HOME_INODE_IDX].classList.add('extB');
+      requestAnimationFrame(()=> drawLine(CD_ROOT_DIR[0], CD_HOME_INODE_IDX, true));
+    });
+    addLine('&nbsp;&nbsp;extents <span class="arrow">→</span> bloco 7000', 2.2);
+
+    addLine('<span class="step-n">3.</span> READ_BLOCK(7000) <span class="comment">// dados de "/home"</span>', 2.8);
+    gsap.delayedCall(2.8, ()=>{
+      CD_HOME_DIR.forEach(i=> cells[i].classList.add('homedir'));
+      requestAnimationFrame(()=> drawLine(CD_HOME_INODE_IDX, CD_HOME_DIR[0], true));
+    });
+    addLine('&nbsp;&nbsp;"folder1" <span class="arrow">→</span> inode 91', 3.3);
+
+    addLine('<span class="step-n">4.</span> READ_BLOCK(inode 91) <span class="comment">// tabela de inodes</span>', 3.9);
+    gsap.delayedCall(3.9, ()=>{
+      cells[CD_FOLDER_INODE_IDX].classList.add('extA','pulse');
+      requestAnimationFrame(()=> drawLine(CD_HOME_DIR[0], CD_FOLDER_INODE_IDX, true));
+    });
+    addLine('&nbsp;&nbsp;i_mode = diretório <span class="ok">✓</span> — cwd = inode 91', 4.4);
+  },
+];
+
+document.querySelectorAll('.step').forEach((el, i)=>{
+  ScrollTrigger.create({
+    trigger: el,
+    start: 'top center',
+    end: 'bottom center',
+    onEnter: () => renderers[i] && renderers[i](),
+    onEnterBack: () => renderers[i] && renderers[i](),
+  });
+});
+
+/* progress bar */
+gsap.to('#progress', {
+  width: '100%',
+  ease: 'none',
+  scrollTrigger:{ scrub:0.3, start:0, end: () => document.body.scrollHeight - window.innerHeight }
+});
+
+/* stack section reveal */
+gsap.utils.toArray('.stack-layer').forEach((layer, i)=>{
+  gsap.to(layer, {
+    opacity:1, y:0, duration:.6, ease:'power2.out',
+    scrollTrigger:{ trigger: layer, start:'top 85%' }
+  });
+});
+gsap.utils.toArray('.stack-arrow').forEach((arrow)=>{
+  gsap.to(arrow, { opacity:1, duration:.4, scrollTrigger:{ trigger: arrow, start:'top 90%' } });
+});
+gsap.to('.stack-note', { opacity:1, y:0, duration:.6, scrollTrigger:{ trigger:'.stack-note', start:'top 90%' } });
+
+/* redraw lines on resize (positions depend on layout) */
+window.addEventListener('resize', ()=> ScrollTrigger.refresh());
+</script>
+</body>
+</html>
